@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>浆料备料测算（手机测试版）</title>
+<script>
+// 提前应用主题，避免刷新白屏/黑屏闪烁
+(function(){try{var t=localStorage.getItem('jp_theme');if(!t){t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','light');}})();
+</script>
+<style>
+  :root{
+    --bg:#f3f4f6; --card:#ffffff; --text:#1d1f23; --label:#525860; --sub:#9aa0a8;
+    --input:#f4f5f7; --border:#e9eaee; --border-strong:#dfe1e6;
+    --accent:#07c160; --accent-2:#06ad56; --accent-soft:#e9f8ef;
+    --shadow:0 8px 24px rgba(17,24,39,.07); --shadow-sm:0 2px 10px rgba(17,24,39,.05);
+    --ball-green:#07c160; --ball-red:#fa5151; --ball-gray:#c9ccd2;
+    --ball-amt-green:#07c160; --ball-amt-red:#fa5151; --ball-amt-gray:#9aa0a8;
+    --info-bg:#eaf3ff; --info-tx:#1565c0;
+    --enough-bg:#edfbf0; --enough-tx:#1a9e4b;
+    --short-bg:#fff1f0; --short-tx:#e03a3a;
+    --lack-bg:#fff4ec; --lack-tx:#e0730a;
+    --total-tx:#106b39;
+  }
+  [data-theme="dark"]{
+    --bg:#0e1014; --card:#191c22; --text:#e9ebef; --label:#aab1bc; --sub:#727884;
+    --input:#242932; --border:#2a2f38; --border-strong:#333a44;
+    --accent:#2ecc71; --accent-2:#27b363; --accent-soft:#143027;
+    --shadow:0 10px 28px rgba(0,0,0,.5); --shadow-sm:0 2px 12px rgba(0,0,0,.4);
+    --ball-green:#2ecc71; --ball-red:#ff5a5a; --ball-gray:#3a404a;
+    --ball-amt-green:#5fd994; --ball-amt-red:#ff7a7a; --ball-amt-gray:#8b9099;
+    --info-bg:#15263d; --info-tx:#7cb8ff;
+    --enough-bg:#15301f; --enough-tx:#5fd994;
+    --short-bg:#3a1d1d; --short-tx:#ff8585;
+    --lack-bg:#33241a; --lack-tx:#ffa44d;
+    --total-tx:#5fd994;
+  }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body { margin:0; background:var(--bg); color:var(--text); font-size:14px; line-height:1.5;
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Segoe UI",Roboto,sans-serif;
+    transition:background .25s ease, color .25s ease; }
+  .header { display:flex; align-items:center; justify-content:space-between; padding:22px 16px 12px; }
+  .title { font-size:21px; font-weight:700; letter-spacing:.5px; }
+  .subtitle { font-size:12px; color:var(--sub); margin-top:3px; }
+  .theme-btn { flex-shrink:0; width:42px; height:42px; border-radius:50%; border:1px solid var(--border);
+    background:var(--card); display:flex; align-items:center; justify-content:center; font-size:18px;
+    cursor:pointer; box-shadow:var(--shadow-sm); transition:transform .15s; }
+  .theme-btn:active { transform:scale(.9); }
+  .container { padding:0 14px 70px; }
+  .empty { text-align:center; color:var(--sub); margin:64px 0; white-space:pre-line; line-height:1.9; }
+  .card { background:var(--card); border-radius:18px; padding:16px; margin-bottom:16px;
+    box-shadow:var(--shadow); border:1px solid var(--border); transition:background .25s, border-color .25s; }
+  .card-head { display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border); padding-bottom:12px; margin-bottom:6px; }
+  .card-name { font-size:17px; font-weight:600; flex:1; border:none; outline:none; background:transparent; color:var(--text); min-width:0; }
+  .card-del { font-size:13px; color:#fa5151; padding-left:12px; flex-shrink:0; }
+  .field { display:flex; align-items:center; justify-content:space-between; padding:8px 0; }
+  .field-label { font-size:14px; color:var(--label); flex:1; min-width:0; }
+  .field-label-col { flex:1; min-width:0; display:flex; flex-direction:column; }
+  .field-sub { font-size:11px; color:var(--sub); margin-top:2px; }
+  .field-input { width:128px; flex-shrink:0; text-align:right; background:var(--input); border:1px solid var(--border);
+    border-radius:10px; padding:9px 12px; font-size:15px; color:var(--text); outline:none; transition:border-color .15s, box-shadow .15s; }
+  .field-input:focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
+  .field-auto { font-size:16px; font-weight:600; color:var(--accent); min-width:60px; text-align:right; }
+  .sample-block { background:var(--input); border-radius:12px; padding:10px 12px; margin:8px 0; border:1px solid var(--border); }
+  .use-head { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:4px; }
+  .use-hint { font-size:11px; color:var(--accent); flex-shrink:0; }
+  .sample-row { display:flex; align-items:center; padding:6px 0; }
+  .s-label { font-size:13px; color:var(--sub); flex-shrink:0; }
+  .s-num { width:44px; flex-shrink:0; text-align:center; background:var(--card); border:1px solid var(--border); border-radius:8px; padding:7px 2px; font-size:15px; margin:0 3px; outline:none; color:var(--text); }
+  .s-amount { flex:1; min-width:0; text-align:right; background:var(--card); border:1px solid var(--border); border-radius:8px; padding:7px 10px; font-size:15px; margin:0 8px 0 3px; outline:none; color:var(--text); }
+  .use-del { font-size:20px; color:#fa5151; width:22px; flex-shrink:0; text-align:center; }
+  .use-add { text-align:center; font-size:13px; color:var(--accent); padding:9px 0; border:1px dashed var(--accent); border-radius:8px; margin-top:6px; transition:background .15s; }
+  .use-add:active { background:var(--accent-soft); }
+  .result { margin-top:10px; }
+  .result-line { font-size:14px; padding:11px 13px; border-radius:10px; margin-top:8px; line-height:1.5; }
+  .info { background:var(--info-bg); color:var(--info-tx); }
+  .enough { background:var(--enough-bg); color:var(--enough-tx); }
+  .short { background:var(--short-bg); color:var(--short-tx); }
+  .lack { background:var(--lack-bg); color:var(--lack-tx); font-weight:600; }
+  .add-btn { background:linear-gradient(135deg,var(--accent),var(--accent-2)); color:#fff; border:none; border-radius:14px; width:100%; padding:13px; margin-top:8px; font-size:15px; font-weight:600; box-shadow:0 6px 16px rgba(7,193,96,.25); transition:transform .1s; }
+  .add-btn:active { transform:translateY(1px); }
+  .guide-link { text-align:center; color:var(--accent); font-size:13px; margin-top:18px; }
+  .guide { background:var(--card); border-radius:16px; padding:16px; margin:0 14px 40px; font-size:13px; color:var(--label); line-height:1.78; display:none; border:1px solid var(--border); }
+  .guide h3 { color:var(--accent); font-size:15px; margin:14px 0 6px; }
+  .guide h3:first-child { margin-top:0; }
+  .toast { position:fixed; bottom:48px; left:50%; transform:translateX(-50%); background:rgba(20,22,28,.92); color:#fff; padding:11px 18px; border-radius:10px; font-size:14px; display:none; z-index:99; -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px); }
+  /* 修改编号弹窗 */
+  .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center; z-index:100; padding:20px; }
+  .modal { background:var(--card); border-radius:18px; padding:20px; width:100%; max-width:320px; box-shadow:var(--shadow); border:1px solid var(--border); }
+  .modal-title { font-size:17px; font-weight:600; margin-bottom:14px; }
+  .modal-input { width:100%; background:var(--input); border:1px solid var(--border); border-radius:12px; padding:11px 14px; font-size:16px; color:var(--text); outline:none; margin-bottom:16px; }
+  .modal-input:focus { border-color:var(--accent); }
+  .modal-btns { display:flex; gap:10px; }
+  .modal-cancel, .modal-ok { flex:1; border:none; border-radius:12px; padding:11px; font-size:15px; font-weight:600; }
+  .modal-cancel { background:var(--input); color:var(--label); }
+  .modal-ok { background:var(--accent); color:#fff; }
+  /* 圆球长按菜单 */
+  .ball-menu { position:fixed; z-index:101; background:var(--card); border-radius:12px; box-shadow:var(--shadow); border:1px solid var(--border); padding:6px 0; min-width:120px; }
+  .ball-menu-item { padding:12px 16px; font-size:14px; color:var(--text); transition:background .1s; }
+  .ball-menu-item:active { background:var(--input); }
+  .ball-menu-line { height:1px; background:var(--border); margin:4px 0; }
+  .ball-menu-del { color:#fa5151; }
+  /* iOS 风格开关 */
+  .switch { position:relative; width:46px; height:26px; flex-shrink:0; }
+  .switch input { position:absolute; opacity:0; width:100%; height:100%; margin:0; z-index:2; }
+  .switch .track { position:absolute; top:0; left:0; right:0; bottom:0; background:var(--border-strong); border-radius:13px; transition:.2s; pointer-events:none; }
+  .switch .knob { position:absolute; top:2px; left:2px; width:22px; height:22px; background:#fff; border-radius:50%; box-shadow:0 1px 3px rgba(0,0,0,.25); transition:.2s; pointer-events:none; }
+  .switch input:checked ~ .track { background:var(--accent); }
+  .switch input:checked ~ .knob { transform:translateX(20px); }
+  /* 浆料标签行（横向滚动 · 圆形号码球，像双色球） */
+  .chip-scroll { margin-top:8px; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+  .chip-scroll::-webkit-scrollbar { display:none; }
+  .chip-row { display:inline-flex; align-items:flex-start; padding:6px 0; }
+  .chip { flex:none; display:flex; flex-direction:column; align-items:center; width:54px; margin-right:8px; }
+  .ball {
+    width:44px; height:44px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:16px; font-weight:700; color:#fff;
+    background:var(--ball-gray);
+    box-shadow:0 2px 6px rgba(0,0,0,.18);
+    transition:transform .15s, box-shadow .15s;
+    cursor:pointer;
+  }
+  .ball.green { background:var(--ball-green); }
+  .ball.red   { background:var(--ball-red); }
+  .ball.gray  { background:var(--ball-gray); }
+  .ball-add   { background:var(--card); border:2px dashed var(--accent); color:var(--accent); }
+  .ball-full  { background:var(--input); border:2px solid var(--border-strong); color:var(--sub); }
+  .chip-on .ball { transform:scale(1.1); box-shadow:0 4px 12px rgba(0,0,0,.3); }
+  .ball-amt { font-size:11px; margin-top:5px; line-height:1; }
+  .ball-amt.green { color:var(--ball-amt-green); }
+  .ball-amt.red   { color:var(--ball-amt-red); }
+  .ball-amt.gray  { color:var(--ball-amt-gray); }
+  /* 选中浆料详情（抽屉 / Tab 内容） */
+  .slurry-detail { margin-top:8px; border-top:1px dashed var(--border); padding-top:8px; }
+  .slurry-panel { animation:fadeIn .18s ease; }
+  @keyframes fadeIn { from { opacity:.3; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+  /* 底部吸底操作条 */
+  .action-bar { position:sticky; bottom:10px; display:flex; align-items:center; justify-content:space-between; margin-top:14px; padding:10px 14px; background:var(--card); border:1px solid var(--border); border-radius:14px; box-shadow:0 -4px 18px rgba(0,0,0,.08); transition:background .25s, border-color .25s; }
+  [data-theme="dark"] .action-bar { box-shadow:0 -4px 18px rgba(0,0,0,.45); }
+  .action-total { font-size:14px; font-weight:700; color:var(--total-tx); flex:1; min-width:0; }
+  .apply-btn2 { background:linear-gradient(135deg,var(--accent),var(--accent-2)); color:#fff; border:none; border-radius:10px; font-size:14px; padding:0 16px; height:42px; line-height:42px; margin:0 0 0 12px; flex-shrink:0; font-weight:600; box-shadow:0 4px 12px rgba(7,193,96,.25); transition:transform .1s; }
+  .apply-btn2:active { transform:translateY(1px); }
+</style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <div class="title">浆料备料测算</div>
+      <div class="subtitle">项目后补测算 · 一项目多浆料（手机测试版）</div>
+    </div>
+    <div class="theme-btn" id="themeBtn" title="切换白天 / 黑夜">🌙</div>
+  </div>
+  <div class="container" id="container">
+    <div class="empty" id="empty">还没有项目卡片
+点下面“+ 添加项目”开始测算</div>
+  </div>
+  <div style="padding:0 14px 20px;">
+    <button class="add-btn" id="addBtn">+ 添加项目</button>
+    <div class="guide-link" id="guideLink">↓ 看用法说明</div>
+  </div>
+  <div class="guide" id="guide">
+    <h3>单位说明</h3>
+    产品按“车”计量（一车一个单元）；料浆按“升(L)”计量。基础料浆、抽样区间总用料、现场实际剩余、后补量都是升(L)。
+    <h3>这个工具帮你做什么</h3>
+    原料间只给一次基础料浆（往往不够）。你不用每车都盯，只在一个区间抽样：记下“第几车到第几车、这段总共用了多少升料浆”，系统用「总用料 ÷ 车数」算出每车均值，再推算还要后补多少。一个项目下可同时监控多种浆料（最多 12 种），每种各自算后补，最后汇总成一份补料申请。
+    <h3>每张项目卡填这些</h3>
+    ① 项目名称 ② 项目总计划（车）③ 已生产（车）：默认自动取抽检最大车号，也可开开关手动填 ④ 浆料清单：顶部一排「圆形号码球」，点 + 球加浆料，点球切换查看；球内编号可长按或双击修改。每种填 基础料浆(L)、抽样记录、现场实际剩余(L·选填)。例如“第2~4车共1.5L”，可记多条，车样本越多越准，可从第2/3/4车起记 ⑤ 现场实际剩余（L）：每种浆料各自填，选填
+    <h3>已生产车数怎么填</h3>
+    大多数抽检从第1车开始，抽检最大车号就等于已生产车数——所以「手动输入已生产」开关默认关，自动取所有浆料抽样里最大的结束车号（显示「已生产（车·自动）」）。只有抽检不是从第1车开始、或想手动覆盖时，才打开开关自己填。
+    <h3>圆形球状态色</h3>
+    每个浆料是一个圆形号码球，球色即状态：<b style="color:#07c160">绿=料浆够（无需补）</b>，<b style="color:#fa5151">红=需后补（显示缺多少 L）</b>，<b style="color:#999">灰=数据未填全（暂不算）</b>。随时看一眼就知道哪个浆料该申请补料。长按球可「修改编号」或「删除浆料」；双击球快速修改编号。右上角可切换白天 / 黑夜模式。
+    <h3>三种结论（每种浆料各自算）</h3>
+    单车实际用料（总用料÷总车数，L/车）／误差监控（实际剩余−理论剩余，L；不填实际剩余则不显示）／后补料浆（还需生产×单车用料−实际剩余，L；不填实际剩余则按 总计划×单车用料−基础料浆 算）。项目底部吸底条给出合计后补量。
+    <h3>生成补料申请</h3>
+    点吸底条右侧「生成补料申请」会把本项目所有浆料的数据整理成文字复制到剪贴板，直接发原料间。
+    <h3>说明</h3>
+    这是手机测试版，验证计算与交互可行性；正式版是微信小程序（需电脑用微信开发者工具导入）。本页不保存数据，关掉清空。
+  </div>
+  <div class="toast" id="toast"></div>
+
+  <!-- 修改浆料编号弹窗 -->
+  <div class="modal-overlay" id="nameModal" style="display:none;">
+    <div class="modal">
+      <div class="modal-title">修改浆料编号</div>
+      <input type="text" id="nameInput" class="modal-input" placeholder="如：1、A号、主浆" maxlength="10">
+      <div class="modal-btns">
+        <button class="modal-cancel" id="nameCancel">取消</button>
+        <button class="modal-ok" id="nameOk">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 圆球长按菜单 -->
+  <div class="ball-menu" id="ballMenu" style="display:none;">
+    <div class="ball-menu-item" id="menuEdit">修改编号</div>
+    <div class="ball-menu-line"></div>
+    <div class="ball-menu-item ball-menu-del" id="menuDel">删除浆料</div>
+  </div>
+
+<script>
+// ===== 计算逻辑：与微信小程序版完全一致（项目下多浆料 · 抽样区间均值，单位 L）=====
+const MAX_SLURRIES = 12;
+
+function computeSlurry(s, P, T) {
+  const B = parseFloat(s.baseSlurry), S = parseFloat(s.actualRemain);
+  const c = { unitValid:false, unit:0, sampleCars:0, unitText:'',
+              diffValid:false, diffText:'', diffType:'',
+              replenishValid:false, replenish:0, replenishText:'', replenishType:'' };
+  let totalCars = 0, totalUse = 0;
+  (s.samples || []).forEach(sm => {
+    const st = parseFloat(sm.start), en = parseFloat(sm.end), us = parseFloat(sm.use);
+    if (!isNaN(st) && !isNaN(en) && !isNaN(us) && en >= st) { totalCars += (en - st + 1); totalUse += us; }
+  });
+  if (totalCars > 0) {
+    const u = totalUse / totalCars;
+    c.unitValid = true; c.unit = u; c.sampleCars = totalCars;
+    c.unitText = '单车实际用料 ' + u.toFixed(2) + ' L/车（' + totalCars + '车样本均值）';
+  }
+  if (c.unitValid && !isNaN(B) && !isNaN(P)) {
+    const tr = B - P * c.unit;
+    if (!isNaN(S)) {
+      const d = S - tr; c.diffValid = true;
+      if (d >= 0) { c.diffText = '误差监控：实际剩余比理论多 ' + d.toFixed(2) + ' L（料浆有富余）'; c.diffType = 'enough'; }
+      else { c.diffText = '误差监控：实际剩余比理论少 ' + (-d).toFixed(2) + ' L（有损耗/需核查）'; c.diffType = 'short'; }
+    }
+  }
+  if (c.unitValid && !isNaN(T) && !isNaN(P)) {
+    const np = T - P;
+    let valid = false, r = 0, basis = '';
+    if (!isNaN(S)) { r = np * c.unit - S; valid = true; basis = '实际剩余'; }
+    else if (!isNaN(B)) { r = T * c.unit - B; valid = true; basis = '理论值'; }
+    if (valid) {
+      c.replenishValid = true;
+      if (r > 0) { c.replenish = r; c.replenishText = '需后补料浆 ' + c.replenish.toFixed(2) + ' L（提交申请·' + basis + '）'; c.replenishType = 'lack'; }
+      else { c.replenish = 0; c.replenishText = '当前料浆可覆盖剩余生产，无需补料（' + basis + '）'; c.replenishType = 'enough'; }
+    }
+  }
+  // 标签角标文字：绿=够 / 红=需补多少L / 灰=未填全
+  c.badgeText = c.replenishValid ? (c.replenishType === 'enough' ? '够' : c.replenish.toFixed(1) + 'L') : '';
+  // 圆形号码球状态：够=绿 / 不够=红 / 待算=灰
+  let ballClass = 'gray', amtText = '待算';
+  if (c.replenishValid) {
+    if (c.replenishType === 'enough') { ballClass = 'green'; amtText = '够'; }
+    else { ballClass = 'red'; amtText = c.replenish.toFixed(1) + 'L'; }
+  }
+  const noLen = (s.no || '').length;
+  c.ballClass = ballClass;
+  c.amtText = amtText;
+  c.ballFont = noLen <= 1 ? 17 : noLen === 2 ? 15 : noLen === 3 ? 12 : 11; // px，名字越长字号越小
+  return c;
+}
+
+function computeProject(p) {
+  const T = parseFloat(p.totalPlan);
+  const c = { autoProduced:'', P:NaN, needProduceValid:false, needProduce:0,
+              slurries:[], totalReplenish:0, allReplenishValid:false };
+  let maxEnd = NaN;
+  (p.slurries || []).forEach(s => {
+    (s.samples || []).forEach(sm => {
+      const st = parseFloat(sm.start), en = parseFloat(sm.end);
+      if (!isNaN(st) && !isNaN(en) && en >= st) { if (isNaN(maxEnd) || en > maxEnd) maxEnd = en; }
+    });
+  });
+  let P;
+  if (p.manualProduced) { P = parseFloat(p.produced); }
+  else { P = maxEnd; c.autoProduced = isNaN(maxEnd) ? '' : String(maxEnd); }
+  c.P = P;
+  if (!isNaN(T) && !isNaN(P)) { c.needProduceValid = true; c.needProduce = T - P; }
+  let total = 0, allValid = true;
+  (p.slurries || []).forEach(s => {
+    const sc = computeSlurry(s, P, T);
+    c.slurries.push(sc);
+    if (sc.replenishValid) total += sc.replenish; else allValid = false;
+  });
+  c.totalReplenish = total;
+  c.totalReplenishText = total.toFixed(2); // 吸底合计统一两位小数，避免浮点误差
+  c.allReplenishValid = allValid && (p.slurries || []).length > 0;
+  return c;
+}
+
+// ===== 界面逻辑 =====
+let projects = [];
+let nextId = 1;
+const container = document.getElementById('container');
+const emptyEl = document.getElementById('empty');
+
+function esc(v) { return String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', 1800);
+}
+function newSlurry(no) { return { id: 's' + (nextId++), no: String(no), baseSlurry:'', samples:[{start:'',end:'',use:''}], actualRemain:'' }; }
+
+function addProject() {
+  const s1 = newSlurry(1);
+  const p = { id: 'p' + (nextId++), name: '项目' + (projects.length + 1), totalPlan:'', produced:'', manualProduced:false, slurries:[ s1 ], activeSlurry: s1.id };
+  projects.push(p);
+  renderProject(p);
+  emptyEl.style.display = 'none';
+}
+
+function resultHTML(sc) {
+  let h = '';
+  if (sc.unitValid) h += '<div class="result-line info">' + sc.unitText + '</div>';
+  if (sc.diffValid) h += '<div class="result-line ' + sc.diffType + '">' + sc.diffText + '</div>';
+  if (sc.replenishValid) h += '<div class="result-line ' + sc.replenishType + '">' + sc.replenishText + '</div>';
+  return h;
+}
+
+// 重新计算并更新卡片上所有“派生显示”（自动已生产 / 标签角标 / 详情结论 / 合计吸底）
+function refresh(p, card) {
+  const c = computeProject(p); p.computed = c;
+  const producedBox = card.querySelector('.produced-box');
+  if (producedBox && !p.manualProduced) {
+    const autoEl = producedBox.querySelector('.produced-auto');
+    if (autoEl) autoEl.textContent = c.autoProduced ? c.autoProduced : '—';
+  }
+  // 标签行（含状态角标）—— 无输入框，重建安全
+  renderChipRow(p, card);
+  // 选中浆料详情结论
+  const ap = card.querySelector('.slurry-detail .s-result');
+  if (ap) {
+    const active = p.slurries.find(s => s.id === p.activeSlurry) || p.slurries[0];
+    if (active) {
+      const idx = p.slurries.indexOf(active);
+      ap.innerHTML = resultHTML(c.slurries[idx]);
+    }
+  }
+  // 吸底合计
+  const totalEl = card.querySelector('.action-total');
+  if (totalEl) totalEl.textContent = '合计后补：' + c.totalReplenishText + ' L';
+}
+
+// 标签行：横向滚动的圆形号码球（状态配色）+ 加号球
+function renderChipRow(p, card) {
+  const row = card.querySelector('.chip-row');
+  if (!row) return;
+  row.innerHTML = '';
+  p.slurries.forEach((s, i) => {
+    const sc = (p.computed && p.computed.slurries[i]) || {};
+    const ballClass = sc.ballClass || 'gray';
+    const amtText = sc.amtText || '待算';
+    const fs = sc.ballFont || 16;
+    const name = s.no || ('浆料' + (i + 1));
+    const chip = document.createElement('div');
+    chip.className = 'chip' + (p.activeSlurry === s.id ? ' chip-on' : '');
+    chip.innerHTML = '<div class="ball ' + ballClass + '" style="font-size:' + fs + 'px">' + esc(name) + '</div>' +
+      '<span class="ball-amt ' + ballClass + '">' + esc(amtText) + '</span>';
+    attachBallEvents(chip, s, p, card);
+    row.appendChild(chip);
+  });
+  const addChip = document.createElement('div');
+  addChip.className = 'chip chip-add';
+  if (p.slurries.length < MAX_SLURRIES) {
+    addChip.innerHTML = '<div class="ball ball-add">+</div>';
+    addChip.addEventListener('click', () => addSlurry(p, card));
+  } else {
+    addChip.innerHTML = '<div class="ball ball-add ball-full">满</div>';
+  }
+  row.appendChild(addChip);
+}
+
+// 圆球手势：单击切换、双击/长按修改编号、长按菜单删除
+let lastTapEl = null, lastTapTime = 0, tapTimer = null;
+let menuTarget = { s:null, p:null, card:null };
+let editTarget = { s:null, p:null, card:null };
+let menuShown = false;
+
+function attachBallEvents(chip, s, p, card) {
+  let pressTimer = null, moved = false, sx, sy;
+  chip.addEventListener('touchstart', e => {
+    moved = false;
+    const t = e.touches[0]; sx = t.clientX; sy = t.clientY;
+    pressTimer = setTimeout(() => {
+      pressTimer = null;
+      menuShown = true;
+      showBallMenu(s, p, card, t.clientX, t.clientY);
+    }, 500);
+  }, {passive:true});
+  chip.addEventListener('touchmove', e => {
+    const t = e.touches[0];
+    if (Math.abs(t.clientX - sx) > 8 || Math.abs(t.clientY - sy) > 8) { moved = true; if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; } }
+  }, {passive:true});
+  chip.addEventListener('touchend', e => {
+    if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
+    if (moved || menuShown) { menuShown = false; return; }
+    const now = Date.now();
+    if (lastTapEl === chip && now - lastTapTime < 260) {
+      lastTapEl = null; lastTapTime = 0;
+      if (tapTimer) { clearTimeout(tapTimer); tapTimer = null; }
+      showNameModal(s, p, card);
+    } else {
+      lastTapEl = chip; lastTapTime = now;
+      if (tapTimer) clearTimeout(tapTimer);
+      tapTimer = setTimeout(() => { tapTimer = null; onSelectSlurry(p, s.id, card); }, 260);
+    }
+  });
+  chip.addEventListener('touchcancel', () => { if(pressTimer){clearTimeout(pressTimer);pressTimer=null;} });
+  chip.addEventListener('dblclick', (e) => { e.preventDefault(); showNameModal(s, p, card); });
+}
+
+function showBallMenu(s, p, card, x, y) {
+  menuTarget = { s, p, card };
+  const menu = document.getElementById('ballMenu');
+  const w = window.innerWidth, h = window.innerHeight;
+  let left = Math.max(10, Math.min(w - 130, x - 60));
+  let top = Math.max(10, Math.min(h - 100, y - 90));
+  menu.style.left = left + 'px';
+  menu.style.top = top + 'px';
+  menu.style.display = 'block';
+}
+function hideBallMenu() { document.getElementById('ballMenu').style.display = 'none'; menuTarget = { s:null, p:null, card:null }; menuShown = false; }
+function showNameModal(s, p, card) {
+  editTarget = { s, p, card };
+  const inp = document.getElementById('nameInput');
+  inp.value = s.no || '';
+  document.getElementById('nameModal').style.display = 'flex';
+  setTimeout(() => inp.focus(), 50);
+}
+function hideNameModal() { document.getElementById('nameModal').style.display = 'none'; editTarget = { s:null, p:null, card:null }; }
+function saveSlurryName() {
+  if (!editTarget.s) return;
+  const v = document.getElementById('nameInput').value;
+  editTarget.s.no = (v || '').trim() || editTarget.s.no;
+  renderChipRow(editTarget.p, editTarget.card);
+  refresh(editTarget.p, editTarget.card);
+  hideNameModal();
+}
+
+// 选中浆料详情面板（抽屉 / Tab 内容）。仅在结构变化时重建，避免输入失焦
+function renderActivePanel(p, card) {
+  const box = card.querySelector('.slurry-detail');
+  box.innerHTML = '';
+  let active = p.slurries.find(s => s.id === p.activeSlurry) || p.slurries[0];
+  if (!active) return;
+  p.activeSlurry = active.id;
+  const el = document.createElement('div');
+  el.className = 'slurry-panel';
+  el.innerHTML =
+    '<div class="field"><span class="field-label">基础料浆（L）</span><input class="field-input s-base" type="number" inputmode="decimal" placeholder="原料间给的" value="' + esc(active.baseSlurry) + '"></div>' +
+    '<div class="sample-block"><div class="use-head"><span class="field-label">抽样记录（区间总用料L ÷ 车数）</span><span class="use-hint">可第2/3车起记</span></div><div class="samples"></div><div class="use-add s-add">+ 添加抽样区间</div></div>' +
+    '<div class="field"><div class="field-label-col"><span class="field-label">现场实际剩余（L）</span><span class="field-sub">选填：不填则按理论算，无误差监控</span></div><input class="field-input s-remain" type="number" inputmode="decimal" placeholder="实测余量" value="' + esc(active.actualRemain) + '"></div>' +
+    '<div class="result s-result"></div>';
+  box.appendChild(el);
+
+  const samplesBox = el.querySelector('.samples');
+  el.querySelector('.s-base').addEventListener('input', e => { active.baseSlurry = e.target.value; refresh(p, card); });
+  el.querySelector('.s-remain').addEventListener('input', e => { active.actualRemain = e.target.value; refresh(p, card); });
+  el.querySelector('.s-add').addEventListener('click', () => { active.samples.push({ start:'', end:'', use:'' }); renderSamples(active, samplesBox, p, card); refresh(p, card); });
+  renderSamples(active, samplesBox, p, card);
+}
+
+function onSelectSlurry(p, sid, card) {
+  p.activeSlurry = sid;
+  renderActivePanel(p, card);
+  refresh(p, card);
+}
+
+function addSlurry(p, card) {
+  if (p.slurries.length >= MAX_SLURRIES) return;
+  const s = newSlurry(p.slurries.length + 1);
+  p.slurries.push(s);
+  p.activeSlurry = s.id;
+  renderActivePanel(p, card);
+  refresh(p, card);
+}
+
+function removeSlurry(p, sid, card) {
+  p.slurries = p.slurries.filter(x => x.id !== sid);
+  if (p.activeSlurry === sid) p.activeSlurry = p.slurries.length ? p.slurries[0].id : '';
+  renderActivePanel(p, card);
+  refresh(p, card);
+}
+
+function renderSamples(s, box, p, card) {
+  box.innerHTML = '';
+  s.samples.forEach((sm, idx) => {
+    const row = document.createElement('div');
+    row.className = 'sample-row';
+    const lab1 = document.createElement('span'); lab1.className='s-label'; lab1.textContent='第';
+    const inS = document.createElement('input'); inS.className='s-num'; inS.type='number'; inS.inputMode='decimal'; inS.placeholder='起'; inS.value=sm.start;
+    inS.addEventListener('input', e => { s.samples[idx].start = e.target.value; refresh(p, card); });
+    const sep1 = document.createElement('span'); sep1.className='s-label'; sep1.textContent='~';
+    const inE = document.createElement('input'); inE.className='s-num'; inE.type='number'; inE.inputMode='decimal'; inE.placeholder='止'; inE.value=sm.end;
+    inE.addEventListener('input', e => { s.samples[idx].end = e.target.value; refresh(p, card); });
+    const sep2 = document.createElement('span'); sep2.className='s-label'; sep2.textContent='车';
+    const inU = document.createElement('input'); inU.className='s-amount'; inU.type='number'; inU.inputMode='decimal'; inU.placeholder='区间总用料(L)'; inU.value=sm.use;
+    inU.addEventListener('input', e => { s.samples[idx].use = e.target.value; refresh(p, card); });
+    const del = document.createElement('span'); del.className='use-del'; del.textContent='×';
+    del.addEventListener('click', () => { s.samples.splice(idx, 1); renderSamples(s, box, p, card); refresh(p, card); });
+    row.appendChild(lab1); row.appendChild(inS); row.appendChild(sep1); row.appendChild(inE); row.appendChild(sep2); row.appendChild(inU); row.appendChild(del);
+    box.appendChild(row);
+  });
+}
+
+function renderProduced(p, producedBox, card) {
+  producedBox.innerHTML = '';
+  const toggleRow = document.createElement('div');
+  toggleRow.className = 'field';
+  const labelCol = document.createElement('div');
+  labelCol.className = 'field-label-col';
+  labelCol.innerHTML = '<span class="field-label">手动输入已生产（车）</span><span class="field-sub">默认关：自动按抽检最大车号</span>';
+  const sw = document.createElement('label'); sw.className = 'switch';
+  const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = !!p.manualProduced;
+  const track = document.createElement('span'); track.className = 'track';
+  const knob = document.createElement('span'); knob.className = 'knob';
+  sw.appendChild(cb); sw.appendChild(track); sw.appendChild(knob);
+  cb.addEventListener('change', () => { p.manualProduced = cb.checked; renderProduced(p, producedBox, card); refresh(p, card); });
+  toggleRow.appendChild(labelCol); toggleRow.appendChild(sw);
+  producedBox.appendChild(toggleRow);
+  const field = document.createElement('div');
+  field.className = 'field';
+  const lab = document.createElement('span'); lab.className = 'field-label';
+  if (p.manualProduced) {
+    lab.textContent = '已生产（车）';
+    const inp = document.createElement('input');
+    inp.className = 'field-input'; inp.type = 'number'; inp.inputMode = 'decimal'; inp.placeholder = '已做几车'; inp.value = p.produced;
+    inp.addEventListener('input', e => { p.produced = e.target.value; refresh(p, card); });
+    field.appendChild(lab); field.appendChild(inp);
+  } else {
+    lab.textContent = '已生产（车·自动）';
+    const val = document.createElement('span'); val.className = 'field-auto produced-auto';
+    val.textContent = (p.computed && p.computed.autoProduced) ? p.computed.autoProduced : '—';
+    field.appendChild(lab); field.appendChild(val);
+  }
+  producedBox.appendChild(field);
+}
+
+function renderProject(p) {
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML =
+    '<div class="card-head"><input class="card-name" placeholder="项目名称" value="' + esc(p.name) + '"><span class="card-del">删除</span></div>' +
+    '<div class="field"><span class="field-label">项目总计划（车）</span><input class="field-input p-plan" type="number" inputmode="decimal" placeholder="总目标" value="' + esc(p.totalPlan) + '"></div>' +
+    '<div class="produced-box"></div>' +
+    '<div class="chip-scroll"><div class="chip-row"></div></div>' +
+    '<div class="slurry-detail"></div>' +
+    '<div class="action-bar"><div class="action-total">合计后补：0 L</div><button class="apply-btn2">生成补料申请</button></div>';
+  container.appendChild(card);
+
+  const nameInput = card.querySelector('.card-name');
+  const planInput = card.querySelector('.p-plan');
+  const producedBox = card.querySelector('.produced-box');
+
+  nameInput.addEventListener('input', e => { p.name = e.target.value; });
+  planInput.addEventListener('input', e => { p.totalPlan = e.target.value; refresh(p, card); });
+
+  card.querySelector('.card-del').addEventListener('click', () => {
+    projects = projects.filter(x => x.id !== p.id); card.remove();
+    if (projects.length === 0) emptyEl.style.display = 'block';
+  });
+
+  renderProduced(p, producedBox, card);
+  renderChipRow(p, card);
+  renderActivePanel(p, card);
+  refresh(p, card);
+
+  card.querySelector('.apply-btn2').addEventListener('click', () => {
+    const c = p.computed;
+    if (!c || !c.allReplenishValid) { toast('请先把各浆料数据填全'); return; }
+    const producedShown = isNaN(c.P) ? '?' : c.P;
+    const lines = [];
+    lines.push('【补料申请】' + (p.name || '未命名项目'));
+    lines.push('项目总计划：' + (p.totalPlan || '?') + ' 车');
+    lines.push('已生产：' + producedShown + ' 车' + (p.manualProduced ? '' : '（自动）'));
+    c.slurries.forEach((sc, i) => {
+      const s = p.slurries[i];
+      const sampleText = (s.samples || [])
+        .filter(sm => { const st=parseFloat(sm.start),en=parseFloat(sm.end),us=parseFloat(sm.use); return !isNaN(st)&&!isNaN(en)&&!isNaN(us)&&en>=st; })
+        .map(sm => '第' + sm.start + '~' + sm.end + '车共' + sm.use + 'L').join('；');
+      lines.push('— ' + (s.no || ('浆料' + (i + 1))) + ' —');
+      lines.push('  基础料浆：' + (s.baseSlurry || '?') + ' L');
+      lines.push('  抽样：' + (sampleText || '?'));
+      lines.push('  单车实际用料：' + sc.unit.toFixed(2) + ' L/车（' + sc.sampleCars + '车样本均值）');
+      if (sc.diffValid) lines.push('  误差监控：' + sc.diffText);
+      lines.push('  现场实际剩余：' + (isNaN(parseFloat(s.actualRemain)) ? '未填·按理论算' : s.actualRemain) + ' L');
+      lines.push('  后补料浆：' + (sc.replenishType === 'enough' ? '无需补料（料浆充足）' : sc.replenish.toFixed(2) + ' L'));
+    });
+    lines.push('合计后补料浆：' + c.totalReplenishText + ' L');
+    copyText(lines.join('\n'));
+  });
+}
+
+function copyText(text) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => toast('已复制，可发原料间')).catch(() => fallbackCopy(text));
+  } else { fallbackCopy(text); }
+}
+function fallbackCopy(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.focus(); ta.select();
+  try { document.execCommand('copy'); toast('已复制，可发原料间'); }
+  catch (e) { toast('复制失败，请手动记录'); }
+  document.body.removeChild(ta);
+}
+
+// 圆球菜单与弹窗事件
+document.getElementById('menuEdit').addEventListener('click', () => { const t = menuTarget; hideBallMenu(); if (t.s) showNameModal(t.s, t.p, t.card); });
+document.getElementById('menuDel').addEventListener('click', () => { const t = menuTarget; hideBallMenu(); if (t.s) removeSlurry(t.p, t.s.id, t.card); });
+document.addEventListener('click', (e) => { if (!e.target.closest('#ballMenu')) hideBallMenu(); });
+document.getElementById('nameCancel').addEventListener('click', hideNameModal);
+document.getElementById('nameOk').addEventListener('click', saveSlurryName);
+document.getElementById('nameInput').addEventListener('keydown', e => { if (e.key === 'Enter') saveSlurryName(); if (e.key === 'Escape') hideNameModal(); });
+document.getElementById('nameModal').addEventListener('click', e => { if (e.target.id === 'nameModal') hideNameModal(); });
+
+// 白天 / 黑夜模式切换（持久化）
+(function(){
+  const btn = document.getElementById('themeBtn');
+  function sync(){ const t = document.documentElement.getAttribute('data-theme'); if (btn) btn.textContent = (t === 'dark') ? '☀️' : '🌙'; }
+  sync();
+  if (btn) btn.addEventListener('click', () => {
+    const cur = document.documentElement.getAttribute('data-theme');
+    const next = (cur === 'dark') ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    try { localStorage.setItem('jp_theme', next); } catch(e) {}
+    sync();
+  });
+})();
+
+document.getElementById('addBtn').addEventListener('click', addProject);
+document.getElementById('guideLink').addEventListener('click', () => {
+  const g = document.getElementById('guide');
+  g.style.display = g.style.display === 'block' ? 'none' : 'block';
+  if (g.style.display === 'block') g.scrollIntoView({ behavior: 'smooth' });
+});
+</script>
+</body>
+</html>

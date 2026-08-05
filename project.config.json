@@ -1,0 +1,13 @@
+{
+  "description": "浆料备料测算助手 - 监测员现场测算工具",
+  "setting": {
+    "urlCheck": false,
+    "es6": true,
+    "postcss": true,
+    "minified": true
+  },
+  "compileType": "miniprogram",
+  "libVersion": "latest",
+  "appid": "touristappid",
+  "projectname": "浆料备料测算助手"
+}

@@ -1,0 +1,118 @@
+<!-- index.wxml 浆料备料测算（项目下多浆料 · Tab切换 · 抽样区间均值）-->
+<view class="page {{dark ? 'dark' : ''}}">
+  <view class="header">
+    <view>
+      <view class="title">浆料备料测算</view>
+      <view class="subtitle">项目后补测算 · 一项目多浆料</view>
+    </view>
+    <view class="theme-btn" bindtap="toggleTheme">{{themeIcon}}</view>
+  </view>
+
+  <view wx:if="{{projects.length === 0}}" class="empty">还没有项目卡片
+点下面“+ 添加项目”开始测算</view>
+
+  <block wx:for="{{projects}}" wx:key="id" wx:for-item="p">
+    <view class="card">
+      <view class="card-head">
+        <input class="card-name" placeholder="项目名称" value="{{p.name}}" bindinput="onNameInput" data-id="{{p.id}}" />
+        <text class="card-del" bindtap="removeProject" data-id="{{p.id}}">删除</text>
+      </view>
+
+      <!-- 项目级：总计划车数 -->
+      <view class="field">
+        <text class="field-label">项目总计划（车）</text>
+        <input class="field-input" type="digit" placeholder="总目标" value="{{p.totalPlan}}" bindinput="onFieldInput" data-id="{{p.id}}" data-field="totalPlan" />
+      </view>
+
+      <!-- 项目级：已生产车数 开关 -->
+      <view class="field">
+        <view class="field-label-col">
+          <text class="field-label">手动输入已生产（车）</text>
+          <text class="field-sub">默认关：自动取抽检最大车号</text>
+        </view>
+        <switch checked="{{p.manualProduced}}" bindchange="onToggleProduced" data-id="{{p.id}}" color="#07c160" />
+      </view>
+      <block wx:if="{{p.manualProduced}}">
+        <view class="field">
+          <text class="field-label">已生产（车）</text>
+          <input class="field-input" type="digit" placeholder="已做几车" value="{{p.produced}}" bindinput="onFieldInput" data-id="{{p.id}}" data-field="produced" />
+        </view>
+      </block>
+      <block wx:else>
+        <view class="field">
+          <text class="field-label">已生产（车·自动）</text>
+          <text class="field-auto">{{p.computed.autoProduced || '—'}}</text>
+        </view>
+      </block>
+
+      <!-- 浆料标签行（横向滚动 · 圆形号码球，像双色球） -->
+      <scroll-view scroll-x="true" enable-flex class="chip-scroll">
+        <view class="chip-row">
+          <view wx:for="{{p.slurries}}" wx:key="id" wx:for-item="s" wx:for-index="si"
+                class="chip {{p.activeSlurry === s.id ? 'chip-on' : ''}}"
+                bindtap="onSelectSlurry" data-id="{{p.id}}" data-sid="{{s.id}}">
+            <view class="ball {{p.computed.slurries[si].ballClass || 'gray'}}" style="font-size:{{p.computed.slurries[si].ballFont || 36}}rpx" bindlongpress="onBallLongPress" data-id="{{p.id}}" data-sid="{{s.id}}">{{s.no || ('浆料' + (si + 1))}}</view>
+            <text class="ball-amt {{p.computed.slurries[si].ballClass || 'gray'}}">{{p.computed.slurries[si].amtText || '待算'}}</text>
+          </view>
+          <view wx:if="{{p.slurries.length < 12}}" class="chip chip-add" bindtap="addSlurry" data-id="{{p.id}}"><view class="ball ball-add">+</view></view>
+          <view wx:else class="chip chip-add chip-disabled"><view class="ball ball-add ball-full">满</view></view>
+        </view>
+      </scroll-view>
+
+      <!-- 选中浆料详情（抽屉/Tab 内容） -->
+      <view class="slurry-detail">
+        <block wx:for="{{p.slurries}}" wx:key="id" wx:for-item="s" wx:for-index="si">
+          <view wx:if="{{p.activeSlurry === s.id}}" class="slurry-panel">
+            <view class="field">
+              <text class="field-label">基础料浆（L）</text>
+              <input class="field-input" type="digit" placeholder="原料间给的" value="{{s.baseSlurry}}" bindinput="onSlurryInput" data-id="{{p.id}}" data-sid="{{s.id}}" data-field="baseSlurry" />
+            </view>
+
+            <view class="sample-block">
+              <view class="use-head">
+                <text class="field-label">抽样记录（区间总用料L ÷ 车数）</text>
+                <text class="use-hint">可第2/3车起记</text>
+              </view>
+              <block wx:for="{{s.samples}}" wx:key="index" wx:for-item="sm" wx:for-index="sidx">
+                <view class="sample-row">
+                  <text class="s-label">第</text>
+                  <input class="s-num" type="digit" placeholder="起" value="{{sm.start}}" bindinput="onSampleInput" data-id="{{p.id}}" data-sid="{{s.id}}" data-idx="{{sidx}}" data-field="start" />
+                  <text class="s-label">~</text>
+                  <input class="s-num" type="digit" placeholder="止" value="{{sm.end}}" bindinput="onSampleInput" data-id="{{p.id}}" data-sid="{{s.id}}" data-idx="{{sidx}}" data-field="end" />
+                  <text class="s-label">车</text>
+                  <input class="s-amount" type="digit" placeholder="区间总用料(L)" value="{{sm.use}}" bindinput="onSampleInput" data-id="{{p.id}}" data-sid="{{s.id}}" data-idx="{{sidx}}" data-field="use" />
+                  <text class="use-del" bindtap="removeSample" data-id="{{p.id}}" data-sid="{{s.id}}" data-idx="{{sidx}}">×</text>
+                </view>
+              </block>
+              <view class="use-add" bindtap="addSample" data-id="{{p.id}}" data-sid="{{s.id}}">+ 添加抽样区间</view>
+            </view>
+
+            <view class="field">
+              <view class="field-label-col">
+                <text class="field-label">现场实际剩余（L）</text>
+                <text class="field-sub">选填：不填则按理论算，无误差监控</text>
+              </view>
+              <input class="field-input" type="digit" placeholder="实测余量" value="{{s.actualRemain}}" bindinput="onSlurryInput" data-id="{{p.id}}" data-sid="{{s.id}}" data-field="actualRemain" />
+            </view>
+
+            <!-- 该浆料结论 -->
+            <view class="result">
+              <view wx:if="{{p.computed.slurries[si].unitValid}}" class="result-line info">{{p.computed.slurries[si].unitText}}</view>
+              <view wx:if="{{p.computed.slurries[si].diffValid}}" class="result-line {{p.computed.slurries[si].diffType}}">{{p.computed.slurries[si].diffText}}</view>
+              <view wx:if="{{p.computed.slurries[si].replenishValid}}" class="result-line {{p.computed.slurries[si].replenishType}}">{{p.computed.slurries[si].replenishText}}</view>
+            </view>
+          </view>
+        </block>
+      </view>
+
+      <!-- 底部吸底操作条 -->
+      <view class="action-bar">
+        <view class="action-total">合计后补：{{p.computed.totalReplenishText}} L</view>
+        <button class="apply-btn2" bindtap="genApply" data-id="{{p.id}}">生成补料申请</button>
+      </view>
+    </view>
+  </block>
+
+  <button class="add-btn" bindtap="addProject">+ 添加项目</button>
+  <view class="guide-link" bindtap="goGuide">↓ 看用法说明</view>
+</view>

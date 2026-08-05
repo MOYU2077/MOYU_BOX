@@ -1,0 +1,6 @@
+page {
+  background-color: #f2f3f5;
+  font-family: -apple-system, "PingFang SC", sans-serif;
+  color: #1f1f1f;
+  font-size: 28rpx;
+}
