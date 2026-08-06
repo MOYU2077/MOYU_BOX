@@ -13,3 +13,6 @@ desktop.ini
 node_modules/
 dist/
 *.log
+
+# 打包传输用的压缩包（不纳入版本库）
+*.zip
