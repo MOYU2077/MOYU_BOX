@@ -609,7 +609,7 @@ document.getElementById('nameModal').addEventListener('click', e => { if (e.targ
 // 白天 / 黑夜模式切换（持久化）
 (function(){
   const btn = document.getElementById('themeBtn');
-  function sync(){ const t = document.documentElement.getAttribute('data-theme'); if (btn) btn.textContent = (t === 'dark') ? '☀️' : '🌙'; }
+  function sync(){ const t = document.documentElement.getAttribute('data-theme'); if (btn) btn.textContent = (t === 'dark') ? '🌙' : '☀️'; }
   sync();
   if (btn) btn.addEventListener('click', () => {
     const cur = document.documentElement.getAttribute('data-theme');

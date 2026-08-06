@@ -20,7 +20,7 @@ Page({
   },
 
   applyTheme(isDark) {
-    this.setData({ dark: isDark, themeIcon: isDark ? '☀️' : '🌙' })
+    this.setData({ dark: isDark, themeIcon: isDark ? '🌙' : '☀️' })
   },
 
   toggleTheme() {
