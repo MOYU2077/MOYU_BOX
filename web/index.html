@@ -71,6 +71,9 @@
   .use-del { font-size:20px; color:#fa5151; width:22px; flex-shrink:0; text-align:center; }
   .use-add { text-align:center; font-size:13px; color:var(--accent); padding:9px 0; border:1px dashed var(--accent); border-radius:8px; margin-top:6px; transition:background .15s; }
   .use-add:active { background:var(--accent-soft); }
+  .sample-item { padding:6px 0; }
+  .s-use-calc { display:block; font-size:11px; color:#07a55a; padding:2px 4px 0 2px; }
+  .s-use-calc.bad { color:#fa5151; }
   .result { margin-top:10px; }
   .result-line { font-size:14px; padding:11px 13px; border-radius:10px; margin-top:8px; line-height:1.5; }
   .info { background:var(--info-bg); color:var(--info-tx); }
@@ -161,17 +164,17 @@
   </div>
   <div class="guide" id="guide">
     <h3>单位说明</h3>
-    产品按“车”计量（一车一个单元）；料浆按“升(L)”计量。基础料浆、抽样区间总用料、现场实际剩余、后补量都是升(L)。
+    产品按"车"计量（一车一个单元）；料浆按"升(L)"计量。基础料浆、抽样区间结束剩余、现场实际剩余、后补量都是升(L)。
     <h3>这个工具帮你做什么</h3>
-    原料间只给一次基础料浆（往往不够）。你不用每车都盯，只在一个区间抽样：记下“第几车到第几车、这段总共用了多少升料浆”，系统用「总用料 ÷ 车数」算出每车均值，再推算还要后补多少。一个项目下可同时监控多种浆料（最多 12 种），每种各自算后补，最后汇总成一份补料申请。
+    原料间只给一次基础料浆（往往不够）。你不用每车都盯，只在一个区间抽样：记下"第几车到第几车、这段结束时还剩多少升料浆"，系统按「用量 = 基础料浆 − 剩余」÷ 车数算出每车均值，再推算还要后补多少。一个项目下可同时监控多种浆料（最多 12 种），每种各自算后补，最后汇总成一份补料申请。
     <h3>每张项目卡填这些</h3>
-    ① 项目名称 ② 项目总计划（车）③ 已生产（车）：默认自动取抽检最大车号，也可开开关手动填 ④ 浆料清单：顶部一排「圆形号码球」，点 + 球加浆料，点球切换查看；球内编号可长按或双击修改。每种填 基础料浆(L)、抽样记录、现场实际剩余(L·选填)。例如“第2~4车共1.5L”，可记多条，车样本越多越准，可从第2/3/4车起记 ⑤ 现场实际剩余（L）：每种浆料各自填，选填
+    ① 项目名称 ② 项目总计划（车）③ 已生产（车）：默认自动取抽检最大车号，也可开开关手动填 ④ 浆料清单：顶部一排「圆形号码球」，点 + 球加浆料，点球切换查看；球内编号可长按或双击修改。每种填 基础料浆(L)、抽样记录(区间结束剩余·系统算用量)、现场实际剩余(L·选填)。例如“第2~4车结束时剩0.5L”，可记多条，车样本越多越准，可从第2/3/4车起记 ⑤ 现场实际剩余（L）：每种浆料各自填，选填
     <h3>已生产车数怎么填</h3>
     大多数抽检从第1车开始，抽检最大车号就等于已生产车数——所以「手动输入已生产」开关默认关，自动取所有浆料抽样里最大的结束车号（显示「已生产（车·自动）」）。只有抽检不是从第1车开始、或想手动覆盖时，才打开开关自己填。
     <h3>圆形球状态色</h3>
     每个浆料是一个圆形号码球，球色即状态：<b style="color:#07c160">绿=料浆够（无需补）</b>，<b style="color:#fa5151">红=需后补（显示缺多少 L）</b>，<b style="color:#999">灰=数据未填全（暂不算）</b>。随时看一眼就知道哪个浆料该申请补料。长按球可「修改编号」或「删除浆料」；双击球快速修改编号。右上角可切换白天 / 黑夜模式。
     <h3>三种结论（每种浆料各自算）</h3>
-    单车实际用料（总用料÷总车数，L/车）／误差监控（实际剩余−理论剩余，L；不填实际剩余则不显示）／后补料浆（还需生产×单车用料−实际剩余，L；不填实际剩余则按 总计划×单车用料−基础料浆 算）。项目底部吸底条给出合计后补量。
+    单车实际用量（(基础料浆−区间结束剩余)÷车数，L/车）／误差监控（实际剩余−理论剩余，L；不填实际剩余则不显示）／后补料浆（还需生产×单车用料−实际剩余，L；不填实际剩余则按 总计划×单车用料−基础料浆 算）。项目底部吸底条给出合计后补量。
     <h3>生成补料申请</h3>
     点吸底条右侧「生成补料申请」会把本项目所有浆料的数据整理成文字复制到剪贴板，直接发原料间。
     <h3>说明</h3>
@@ -214,13 +217,17 @@ function computeSlurry(s, P, T) {
               replenishValid:false, replenish:0, replenishText:'', replenishType:'' };
   let totalCars = 0, totalUse = 0;
   (s.samples || []).forEach(sm => {
-    const st = parseFloat(sm.start), en = parseFloat(sm.end), us = parseFloat(sm.use);
-    if (!isNaN(st) && !isNaN(en) && !isNaN(us) && en >= st) { totalCars += (en - st + 1); totalUse += us; }
+    const st = parseFloat(sm.start), en = parseFloat(sm.end), rm = parseFloat(sm.remain);
+    // 用量 = 总配量(基础料浆) − 区间结束剩余量；剩余需可观测且在 [0, 总配量] 内
+    if (!isNaN(st) && !isNaN(en) && en >= st && !isNaN(B) && !isNaN(rm) && rm >= 0 && rm <= B) {
+      const us = B - rm;
+      totalCars += (en - st + 1); totalUse += us;
+    }
   });
   if (totalCars > 0) {
     const u = totalUse / totalCars;
     c.unitValid = true; c.unit = u; c.sampleCars = totalCars;
-    c.unitText = '单车实际用料 ' + u.toFixed(2) + ' L/车（' + totalCars + '车样本均值）';
+    c.unitText = '单车实际用量 ' + u.toFixed(2) + ' L/车（' + totalCars + '车样本均值）';
   }
   if (c.unitValid && !isNaN(B) && !isNaN(P)) {
     const tr = B - P * c.unit;
@@ -296,7 +303,7 @@ function toast(msg) {
   t.textContent = msg; t.style.display = 'block';
   setTimeout(() => t.style.display = 'none', 1800);
 }
-function newSlurry(no) { return { id: 's' + (nextId++), no: String(no), baseSlurry:'', samples:[{start:'',end:'',use:''}], actualRemain:'' }; }
+function newSlurry(no) { return { id: 's' + (nextId++), no: String(no), baseSlurry:'', samples:[{start:'',end:'',remain:''}], actualRemain:'' }; }
 
 function addProject() {
   const s1 = newSlurry(1);
@@ -445,7 +452,7 @@ function renderActivePanel(p, card) {
   el.className = 'slurry-panel';
   el.innerHTML =
     '<div class="field"><span class="field-label">基础料浆（L）</span><input class="field-input s-base" type="number" inputmode="decimal" placeholder="原料间给的" value="' + esc(active.baseSlurry) + '"></div>' +
-    '<div class="sample-block"><div class="use-head"><span class="field-label">抽样记录（区间总用料L ÷ 车数）</span><span class="use-hint">可第2/3车起记</span></div><div class="samples"></div><div class="use-add s-add">+ 添加抽样区间</div></div>' +
+    '<div class="sample-block"><div class="use-head"><span class="field-label">抽样记录（区间结束剩余 ÷ 车数）</span><span class="use-hint">填结束剩余量即算出用量</span></div><div class="samples"></div><div class="use-add s-add">+ 添加抽样区间</div></div>' +
     '<div class="field"><div class="field-label-col"><span class="field-label">现场实际剩余（L）</span><span class="field-sub">选填：不填则按理论算，无误差监控</span></div><input class="field-input s-remain" type="number" inputmode="decimal" placeholder="实测余量" value="' + esc(active.actualRemain) + '"></div>' +
     '<div class="result s-result"></div>';
   box.appendChild(el);
@@ -453,7 +460,7 @@ function renderActivePanel(p, card) {
   const samplesBox = el.querySelector('.samples');
   el.querySelector('.s-base').addEventListener('input', e => { active.baseSlurry = e.target.value; refresh(p, card); });
   el.querySelector('.s-remain').addEventListener('input', e => { active.actualRemain = e.target.value; refresh(p, card); });
-  el.querySelector('.s-add').addEventListener('click', () => { active.samples.push({ start:'', end:'', use:'' }); renderSamples(active, samplesBox, p, card); refresh(p, card); });
+  el.querySelector('.s-add').addEventListener('click', () => { active.samples.push({ start:'', end:'', remain:'' }); renderSamples(active, samplesBox, p, card); refresh(p, card); });
   renderSamples(active, samplesBox, p, card);
 }
 
@@ -482,8 +489,8 @@ function removeSlurry(p, sid, card) {
 function renderSamples(s, box, p, card) {
   box.innerHTML = '';
   s.samples.forEach((sm, idx) => {
-    const row = document.createElement('div');
-    row.className = 'sample-row';
+    const wrap = document.createElement('div'); wrap.className = 'sample-item';
+    const row = document.createElement('div'); row.className = 'sample-row';
     const lab1 = document.createElement('span'); lab1.className='s-label'; lab1.textContent='第';
     const inS = document.createElement('input'); inS.className='s-num'; inS.type='number'; inS.inputMode='decimal'; inS.placeholder='起'; inS.value=sm.start;
     inS.addEventListener('input', e => { s.samples[idx].start = e.target.value; refresh(p, card); });
@@ -491,12 +498,23 @@ function renderSamples(s, box, p, card) {
     const inE = document.createElement('input'); inE.className='s-num'; inE.type='number'; inE.inputMode='decimal'; inE.placeholder='止'; inE.value=sm.end;
     inE.addEventListener('input', e => { s.samples[idx].end = e.target.value; refresh(p, card); });
     const sep2 = document.createElement('span'); sep2.className='s-label'; sep2.textContent='车';
-    const inU = document.createElement('input'); inU.className='s-amount'; inU.type='number'; inU.inputMode='decimal'; inU.placeholder='区间总用料(L)'; inU.value=sm.use;
-    inU.addEventListener('input', e => { s.samples[idx].use = e.target.value; refresh(p, card); });
+    const inR = document.createElement('input'); inR.className='s-amount'; inR.type='number'; inR.inputMode='decimal'; inR.placeholder='区间结束剩余(L)'; inR.value=sm.remain;
+    const calc = document.createElement('span'); calc.className='s-use-calc';
+    function updCalc() {
+      const Bv = parseFloat(s.baseSlurry), rm = parseFloat(s.samples[idx].remain);
+      if (!isNaN(Bv) && !isNaN(rm)) {
+        if (rm < 0) { calc.textContent = '剩余不能为负'; calc.className = 's-use-calc bad'; }
+        else if (rm > Bv) { calc.textContent = '剩余(' + rm + ')＞总配量(' + Bv + ')'; calc.className = 's-use-calc bad'; }
+        else { calc.textContent = '算出用量 ' + (Bv - rm).toFixed(2) + ' L'; calc.className = 's-use-calc'; }
+      } else { calc.textContent = '算出用量 —'; calc.className = 's-use-calc'; }
+    }
+    updCalc();
+    inR.addEventListener('input', e => { s.samples[idx].remain = e.target.value; updCalc(); refresh(p, card); });
     const del = document.createElement('span'); del.className='use-del'; del.textContent='×';
     del.addEventListener('click', () => { s.samples.splice(idx, 1); renderSamples(s, box, p, card); refresh(p, card); });
-    row.appendChild(lab1); row.appendChild(inS); row.appendChild(sep1); row.appendChild(inE); row.appendChild(sep2); row.appendChild(inU); row.appendChild(del);
-    box.appendChild(row);
+    row.appendChild(lab1); row.appendChild(inS); row.appendChild(sep1); row.appendChild(inE); row.appendChild(sep2); row.appendChild(inR); row.appendChild(del);
+    wrap.appendChild(row); wrap.appendChild(calc);
+    box.appendChild(wrap);
   });
 }
 
@@ -572,13 +590,14 @@ function renderProject(p) {
     lines.push('已生产：' + producedShown + ' 车' + (p.manualProduced ? '' : '（自动）'));
     c.slurries.forEach((sc, i) => {
       const s = p.slurries[i];
+      const Bp = parseFloat(s.baseSlurry);
       const sampleText = (s.samples || [])
-        .filter(sm => { const st=parseFloat(sm.start),en=parseFloat(sm.end),us=parseFloat(sm.use); return !isNaN(st)&&!isNaN(en)&&!isNaN(us)&&en>=st; })
-        .map(sm => '第' + sm.start + '~' + sm.end + '车共' + sm.use + 'L').join('；');
+        .filter(sm => { const st=parseFloat(sm.start),en=parseFloat(sm.end),rm=parseFloat(sm.remain); return !isNaN(st)&&!isNaN(en)&&en>=st&&!isNaN(Bp)&&!isNaN(rm)&&rm>=0&&rm<=Bp; })
+        .map(sm => { const rm=parseFloat(sm.remain); return '第' + sm.start + '~' + sm.end + '车 剩' + sm.remain + 'L（用' + (Bp - rm).toFixed(2) + 'L）'; }).join('；');
       lines.push('— ' + (s.no || ('浆料' + (i + 1))) + ' —');
       lines.push('  基础料浆：' + (s.baseSlurry || '?') + ' L');
       lines.push('  抽样：' + (sampleText || '?'));
-      lines.push('  单车实际用料：' + sc.unit.toFixed(2) + ' L/车（' + sc.sampleCars + '车样本均值）');
+      lines.push('  单车实际用量：' + sc.unit.toFixed(2) + ' L/车（' + sc.sampleCars + '车样本均值）');
       if (sc.diffValid) lines.push('  误差监控：' + sc.diffText);
       lines.push('  现场实际剩余：' + (isNaN(parseFloat(s.actualRemain)) ? '未填·按理论算' : s.actualRemain) + ' L');
       lines.push('  后补料浆：' + (sc.replenishType === 'enough' ? '无需补料（料浆充足）' : sc.replenish.toFixed(2) + ' L'));

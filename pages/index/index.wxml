@@ -70,18 +70,21 @@
 
             <view class="sample-block">
               <view class="use-head">
-                <text class="field-label">抽样记录（区间总用料L ÷ 车数）</text>
-                <text class="use-hint">可第2/3车起记</text>
+                <text class="field-label">抽样记录（区间结束剩余 ÷ 车数）</text>
+                <text class="use-hint">填结束剩余量即算出用量</text>
               </view>
               <block wx:for="{{s.samples}}" wx:key="index" wx:for-item="sm" wx:for-index="sidx">
-                <view class="sample-row">
-                  <text class="s-label">第</text>
-                  <input class="s-num" type="digit" placeholder="起" value="{{sm.start}}" bindinput="onSampleInput" data-id="{{p.id}}" data-sid="{{s.id}}" data-idx="{{sidx}}" data-field="start" />
-                  <text class="s-label">~</text>
-                  <input class="s-num" type="digit" placeholder="止" value="{{sm.end}}" bindinput="onSampleInput" data-id="{{p.id}}" data-sid="{{s.id}}" data-idx="{{sidx}}" data-field="end" />
-                  <text class="s-label">车</text>
-                  <input class="s-amount" type="digit" placeholder="区间总用料(L)" value="{{sm.use}}" bindinput="onSampleInput" data-id="{{p.id}}" data-sid="{{s.id}}" data-idx="{{sidx}}" data-field="use" />
-                  <text class="use-del" bindtap="removeSample" data-id="{{p.id}}" data-sid="{{s.id}}" data-idx="{{sidx}}">×</text>
+                <view class="sample-item">
+                  <view class="sample-row">
+                    <text class="s-label">第</text>
+                    <input class="s-num" type="digit" placeholder="起" value="{{sm.start}}" bindinput="onSampleInput" data-id="{{p.id}}" data-sid="{{s.id}}" data-idx="{{sidx}}" data-field="start" />
+                    <text class="s-label">~</text>
+                    <input class="s-num" type="digit" placeholder="止" value="{{sm.end}}" bindinput="onSampleInput" data-id="{{p.id}}" data-sid="{{s.id}}" data-idx="{{sidx}}" data-field="end" />
+                    <text class="s-label">车</text>
+                    <input class="s-amount" type="digit" placeholder="区间结束剩余(L)" value="{{sm.remain}}" bindinput="onSampleInput" data-id="{{p.id}}" data-sid="{{s.id}}" data-idx="{{sidx}}" data-field="remain" />
+                    <text class="use-del" bindtap="removeSample" data-id="{{p.id}}" data-sid="{{s.id}}" data-idx="{{sidx}}">×</text>
+                  </view>
+                  <text class="s-use-calc" wx:if="{{sm.calcUse}}">算出用量 {{sm.calcUse}} L</text>
                 </view>
               </block>
               <view class="use-add" bindtap="addSample" data-id="{{p.id}}" data-sid="{{s.id}}">+ 添加抽样区间</view>

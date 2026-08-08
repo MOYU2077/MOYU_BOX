@@ -56,6 +56,8 @@
 .s-amount { flex:1; min-width:0; text-align:right; background:var(--card); border:1rpx solid var(--border); border-radius:16rpx; padding:12rpx 20rpx; font-size:30rpx; margin:0 16rpx 0 6rpx; color:var(--text); }
 .use-del { font-size:40rpx; color:#fa5151; width:40rpx; flex-shrink:0; text-align:center; line-height:1; }
 .use-add { text-align:center; font-size:26rpx; color:var(--accent); padding:16rpx 0; border:1rpx dashed var(--accent); border-radius:16rpx; margin-top:8rpx; }
+.sample-item { padding:10rpx 0; }
+.s-use-calc { display:block; font-size:22rpx; color:#07a55a; padding:2rpx 4rpx 0 8rpx; }
 .result { margin-top:16rpx; }
 .result-line { font-size:28rpx; padding:20rpx 24rpx; border-radius:20rpx; margin-top:16rpx; line-height:1.5; }
 .info { background:var(--info-bg); color:var(--info-tx); }

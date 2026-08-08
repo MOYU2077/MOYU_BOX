@@ -51,7 +51,7 @@ Page({
       id: Date.now() + Math.random(),
       no: String(no),              // 几号浆料（可改名）
       baseSlurry: '',              // 原料间给的基础料浆（L）
-      samples: [{ start: '', end: '', use: '' }], // 抽样区间（区间总用料L）
+      samples: [{ start: '', end: '', remain: '' }], // 抽样区间（区间结束剩余L，系统算用量=基础料浆-剩余）
       actualRemain: ''             // 现场实际剩余（L，选填）
     }
   },
@@ -182,7 +182,7 @@ Page({
     const list = this.data.projects.map(p => {
       if (p.id === ds.id) {
         p.slurries = p.slurries.map(s => {
-          if (s.id === ds.sid) s.samples.push({ start: '', end: '', use: '' })
+          if (s.id === ds.sid) s.samples.push({ start: '', end: '', remain: '' })
           return s
         })
       }
@@ -235,14 +235,15 @@ Page({
     lines.push('已生产：' + producedShown + ' 车' + (p.manualProduced ? '' : '（自动）'))
     c.slurries.forEach((sc, i) => {
       const s = p.slurries[i]
+      const B = parseFloat(s.baseSlurry)
       const sampleText = (s.samples || [])
-        .filter(sm => { const st = parseFloat(sm.start), en = parseFloat(sm.end), us = parseFloat(sm.use); return !isNaN(st) && !isNaN(en) && !isNaN(us) && en >= st })
-        .map(sm => '第' + sm.start + '~' + sm.end + '车共' + sm.use + 'L')
+        .filter(sm => { const st = parseFloat(sm.start), en = parseFloat(sm.end), rm = parseFloat(sm.remain); return !isNaN(st) && !isNaN(en) && en >= st && !isNaN(B) && !isNaN(rm) && rm >= 0 && rm <= B })
+        .map(sm => { const rm = parseFloat(sm.remain); return '第' + sm.start + '~' + sm.end + '车 剩' + sm.remain + 'L（用' + (B - rm).toFixed(2) + 'L）' })
         .join('；')
       lines.push('— ' + (s.no || ('浆料' + (i + 1))) + ' —')
       lines.push('  基础料浆：' + (s.baseSlurry || '?') + ' L')
       lines.push('  抽样：' + (sampleText || '?'))
-      lines.push('  单车实际用料：' + sc.unit.toFixed(2) + ' L/车（' + sc.sampleCars + '车样本均值）')
+      lines.push('  单车实际用量：' + sc.unit.toFixed(2) + ' L/车（' + sc.sampleCars + '车样本均值）')
       if (sc.diffValid) lines.push('  误差监控：' + sc.diffText)
       lines.push('  现场实际剩余：' + (isNaN(parseFloat(s.actualRemain)) ? '未填·按理论算' : s.actualRemain) + ' L')
       lines.push('  后补料浆：' + (sc.replenishType === 'enough' ? '无需补料（料浆充足）' : sc.replenish.toFixed(2) + ' L'))
@@ -270,10 +271,14 @@ function computeSlurry(s, P, T) {
   }
   let totalCars = 0, totalUse = 0
   ;(s.samples || []).forEach(sm => {
-    const st = parseFloat(sm.start), en = parseFloat(sm.end), us = parseFloat(sm.use)
-    if (!isNaN(st) && !isNaN(en) && !isNaN(us) && en >= st) {
+    sm.calcUse = ''
+    const st = parseFloat(sm.start), en = parseFloat(sm.end), rm = parseFloat(sm.remain)
+    // 用量 = 总配量(基础料浆) − 区间结束剩余量；剩余需可观测且在 [0, 总配量] 内
+    if (!isNaN(st) && !isNaN(en) && en >= st && !isNaN(B) && !isNaN(rm) && rm >= 0 && rm <= B) {
+      const us = B - rm
       totalCars += (en - st + 1)
       totalUse += us
+      sm.calcUse = us.toFixed(2)
     }
   })
   if (totalCars > 0) {
@@ -281,7 +286,7 @@ function computeSlurry(s, P, T) {
     c.unitValid = true
     c.unit = u
     c.sampleCars = totalCars
-    c.unitText = '单车实际用料 ' + u.toFixed(2) + ' L/车（' + totalCars + '车样本均值）'
+    c.unitText = '单车实际用量 ' + u.toFixed(2) + ' L/车（' + totalCars + '车样本均值）'
   }
   if (c.unitValid && !isNaN(B) && !isNaN(P)) {
     const theoryRemain = B - P * c.unit
