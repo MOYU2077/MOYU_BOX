@@ -49,10 +49,7 @@
 
 ## 微信小程序使用
 
-1. 电脑安装 [微信开发者工具](https://developers.weixin.qq.com/miniprogram/dev/devtools/download.html)。
-2. 打开工具 → 导入项目 → 选择本目录 `浆料备料测算助手/`。
-3. AppID 可用「测试号」或你自己的。
-4. 编译后预览；可扫码在手机上真机调试。
+
 
 目录结构：
 
