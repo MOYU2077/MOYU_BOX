@@ -1,4 +1,4 @@
-// index.js 浆料备料测算（项目下多浆料 · 抽样区间均值）
+// index.js 浆料备料测算（项目下多浆料 · 抽样记录均值）
 // 单位：产品按“车”计量；料浆按“升(L)”计量
 // 模型：项目级共享“总计划车数 / 已生产车数”；每种浆料各自算单车用量、误差、后补
 const MAX_SLURRIES = 12
@@ -51,7 +51,7 @@ Page({
       id: Date.now() + Math.random(),
       no: String(no),              // 几号浆料（可改名）
       baseSlurry: '',              // 原料间给的基础料浆（L）
-      samples: [{ start: '', end: '', remain: '' }], // 抽样区间（区间结束剩余L，系统算用量=基础料浆-剩余）
+      samples: [{ end: '', remain: '' }], // 抽样记录（到第几车结束时剩多少 L，系统算单车用量=(基础料浆-剩余)÷车号）
       actualRemain: ''             // 现场实际剩余（L，选填）
     }
   },
@@ -182,7 +182,7 @@ Page({
     const list = this.data.projects.map(p => {
       if (p.id === ds.id) {
         p.slurries = p.slurries.map(s => {
-          if (s.id === ds.sid) s.samples.push({ start: '', end: '', remain: '' })
+          if (s.id === ds.sid) s.samples.push({ end: '', remain: '' })
           return s
         })
       }
@@ -237,13 +237,13 @@ Page({
       const s = p.slurries[i]
       const B = parseFloat(s.baseSlurry)
       const sampleText = (s.samples || [])
-        .filter(sm => { const st = parseFloat(sm.start), en = parseFloat(sm.end), rm = parseFloat(sm.remain); return !isNaN(st) && !isNaN(en) && en >= st && !isNaN(B) && !isNaN(rm) && rm >= 0 && rm <= B })
-        .map(sm => { const rm = parseFloat(sm.remain); return '第' + sm.start + '~' + sm.end + '车 剩' + sm.remain + 'L（用' + (B - rm).toFixed(2) + 'L）' })
+        .filter(sm => { const en = parseFloat(sm.end), rm = parseFloat(sm.remain); return !isNaN(en) && en > 0 && !isNaN(B) && !isNaN(rm) && rm >= 0 && rm <= B })
+        .map(sm => { const rm = parseFloat(sm.remain); return '到第' + sm.end + '车 剩' + sm.remain + 'L（用' + (B - rm).toFixed(2) + 'L）' })
         .join('；')
       lines.push('— ' + (s.no || ('浆料' + (i + 1))) + ' —')
       lines.push('  基础料浆：' + (s.baseSlurry || '?') + ' L')
       lines.push('  抽样：' + (sampleText || '?'))
-      lines.push('  单车实际用量：' + sc.unit.toFixed(2) + ' L/车（' + sc.sampleCars + '车样本均值）')
+      lines.push('  单车实际用量：' + sc.unitText.replace('单车实际用量 ', ''))
       if (sc.diffValid) lines.push('  误差监控：' + sc.diffText)
       lines.push('  现场实际剩余：' + (isNaN(parseFloat(s.actualRemain)) ? '未填·按理论算' : s.actualRemain) + ' L')
       lines.push('  后补料浆：' + (sc.replenishType === 'enough' ? '无需补料（料浆充足）' : sc.replenish.toFixed(2) + ' L'))
@@ -269,24 +269,27 @@ function computeSlurry(s, P, T) {
     diffValid: false, diffText: '', diffType: '',
     replenishValid: false, replenish: 0, replenishText: '', replenishType: ''
   }
-  let totalCars = 0, totalUse = 0
+  // 【修正】单车用量 = (基础料浆总量 − 该车结束时剩余) ÷ 该车序号
+  // 每条抽样都是从"第1车"起算的同一笔账，彼此重叠，不能相加；只能各自求值后取平均。
+  let units = [], maxCar = 0
   ;(s.samples || []).forEach(sm => {
     sm.calcUse = ''
-    const st = parseFloat(sm.start), en = parseFloat(sm.end), rm = parseFloat(sm.remain)
-    // 用量 = 总配量(基础料浆) − 区间结束剩余量；剩余需可观测且在 [0, 总配量] 内
-    if (!isNaN(st) && !isNaN(en) && en >= st && !isNaN(B) && !isNaN(rm) && rm >= 0 && rm <= B) {
-      const us = B - rm
-      totalCars += (en - st + 1)
-      totalUse += us
-      sm.calcUse = us.toFixed(2)
+    const en = parseFloat(sm.end), rm = parseFloat(sm.remain)
+    // 剩余需可观测且在 [0, 总配量] 内；end 必须是正的车序号
+    if (!isNaN(en) && en > 0 && !isNaN(B) && !isNaN(rm) && rm >= 0 && rm <= B) {
+      units.push((B - rm) / en)
+      if (en > maxCar) maxCar = en
+      sm.calcUse = (B - rm).toFixed(2)
     }
   })
-  if (totalCars > 0) {
-    const u = totalUse / totalCars
+  if (units.length > 0) {
+    let sumU = 0
+    units.forEach(x => { sumU += x })
+    const u = sumU / units.length
     c.unitValid = true
     c.unit = u
-    c.sampleCars = totalCars
-    c.unitText = '单车实际用量 ' + u.toFixed(2) + ' L/车（' + totalCars + '车样本均值）'
+    c.sampleCars = maxCar
+    c.unitText = '单车实际用量 ' + u.toFixed(2) + ' L/车（到第 ' + maxCar + ' 车 · ' + units.length + ' 条抽样取均值）'
   }
   if (c.unitValid && !isNaN(B) && !isNaN(P)) {
     const theoryRemain = B - P * c.unit
@@ -350,12 +353,12 @@ function computeProject(p) {
     needProduceValid: false, needProduce: 0,
     slurries: [], totalReplenish: 0, allSlurryValid: true, allReplenishValid: false
   }
-  // 自动已生产：取所有浆料抽样区间里的最大结束车号
+  // 自动已生产：取所有浆料抽样记录里的最大车号
   let maxEnd = NaN
   ;(p.slurries || []).forEach(s => {
     ;(s.samples || []).forEach(sm => {
-      const st = parseFloat(sm.start), en = parseFloat(sm.end)
-      if (!isNaN(st) && !isNaN(en) && en >= st) {
+      const en = parseFloat(sm.end)
+      if (!isNaN(en) && en > 0) {
         if (isNaN(maxEnd) || en > maxEnd) maxEnd = en
       }
     })

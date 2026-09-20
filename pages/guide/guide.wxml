@@ -1,26 +1,26 @@
 <!-- guide.wxml 用法说明 -->
 <view class="page">
   <view class="h">单位说明</view>
-  <text class="p">产品按“车”计量（一车一个单元）；料浆按“升(L)”计量。基础料浆、抽样区间结束剩余、现场实际剩余、后补量，单位都是升(L)。</text>
+  <text class="p">产品按“车”计量（一车一个单元）；料浆按“升(L)”计量。基础料浆、抽样剩余、现场实际剩余、后补量，单位都是升(L)。</text>
 
   <view class="h">这个工具帮你做什么</view>
-  <text class="p">原料间只给一次基础料浆（往往不够）。你不用每车都盯，只在一段区间抽样：记下“第几车到第几车、这段结束时还剩多少升料浆”，系统按「用量 = 基础料浆 − 剩余」÷ 车数算出每车均值，再推算还要后补多少，并可一键生成补料申请发给原料间。</text>
+  <text class="p">原料间只给一次基础料浆（往往不够）。你不用每车都盯，只在想核对的时刻记一笔：记下“到第几车结束时还剩多少升料浆”，系统按「(基础料浆 − 剩余) ÷ 车号」算出每车均值，再推算还要后补多少，并可一键生成补料申请发给原料间。</text>
 
   <view class="h">每张项目卡填这些</view>
   <view class="li"><view class="num">1</view><view><text class="k">项目名称</text><text class="v">给项目起个名方便区分</text></view></view>
   <view class="li"><view class="num">2</view><view><text class="k">项目总计划（车）</text><text class="v">本批要生产的总车数，作目标（项目内所有浆料共用车数）</text></view></view>
   <view class="li"><view class="num">3</view><view><text class="k">已生产（车）</text><text class="v">见下方“已生产车数怎么填”说明</text></view></view>
   <view class="li"><view class="num">4</view><view><text class="k">浆料清单（最多 12 种）</text><text class="v">顶部横向一排“圆形号码球”（像双色球）：点「+」球加浆料、点球切换查看；球内编号可长按修改。球色即状态——🔴红=不够（球下显示缺多少L）/🟢绿=够用（球下显示“够”）/⚪灰=待计算（球下显示“待算”）。长按球还能删除浆料。每种浆料各自填：基础料浆（L）、抽样记录、现场实际剩余（L·选填），独立算单车用量、误差、后补</text></view></view>
-  <view class="li"><view class="num">5</view><view><text class="k">抽样记录（每种浆料内）</text><text class="v">点“+ 添加抽样区间”，填 起始车号、结束车号、区间结束剩余(L)（直接看容器里剩多少）。例如“第2~4车结束时剩0.5L”，系统自动按 用量=基础料浆−剩余 算。可加多条，系统合并成综合均值，样本车数越多越准；可从第2/3/4车起记</text></view></view>
+  <view class="li"><view class="num">5</view><view><text class="k">抽样记录（每种浆料内）</text><text class="v">点“+ 添加抽样记录”，填 到第几车结束、以及那时剩余多少升(L)（直接看容器里剩多少）。例如“到第4车结束时剩0.5L”，系统自动按 (基础料浆−剩余)÷车号 算。可加多条，各自算出单车用量后取平均，样本越多越准</text></view></view>
 
   <view class="h">已生产车数怎么填</view>
-  <text class="p">大多数情况抽检查从第1车开始，抽检结束车号就等于“已生产车数”，没必要重复填。所以默认<text class="k">【手动输入已生产】开关是关的</text>，系统自动取“所有抽样区间里最大的结束车号”当作已生产车数（卡片里显示为「已生产（车·自动）」）。</text>
+  <text class="p">每条抽样都是“从第1车累积到第N车”的同一笔账，最大车号通常就等于“已生产车数”，没必要重复填。所以默认<text class="k">【手动输入已生产】开关是关的</text>，系统自动取“所有抽样记录里最大的车号”当作已生产车数（卡片里显示为「已生产（车·自动）」）。</text>
   <text class="p">只有这两种情况才需要打开开关、自己填「已生产（车）」：</text>
-  <view class="li"><view class="num">①</view><view><text class="k">抽检不是从第1车开始</text><text class="v">比如第1车没抽、第2车才开始记，自动值就偏小，这时手动填准确的已生产车数</text></view></view>
-  <view class="li"><view class="num">②</view><view><text class="k">想手动覆盖</text><text class="v">知道确切已生产车数，想直接输入而不依赖抽检</text></view></view>
+  <view class="li"><view class="num">①</view><view><text class="k">抽检车号小于实际已生产</text><text class="v">比如做到第8车才记一次抽样，自动值就偏小，这时手动填准确的已生产车数</text></view></view>
+  <view class="li"><view class="num">②</view><view><text class="k">想手动覆盖</text><text class="v">知道确切已生产车数，想直接输入而不依赖抽样</text></view></view>
 
   <view class="h">三种结论（每种浆料各自算）</view>
-  <text class="p">• 单车实际用量（(基础料浆 − 区间结束剩余) ÷ 总车数，单位 L/车）</text>
+  <text class="p">• 单车实际用量（(基础料浆 − 剩余) ÷ 车号，多条抽样取均值，单位 L/车）</text>
   <text class="p">• 误差监控（实际剩余 − 理论剩余，单位 L；理论剩余 = 基础料浆 − 已生产×单车用料）。<text class="k">仅当该浆料填了“现场实际剩余”才显示</text>。</text>
   <text class="p">• 后补料浆（单位 L）：填了实际剩余 → （还需生产×单车用量）− 实际剩余；不填 → （总计划×单车用量）− 基础料浆（纯理论）。还需生产 = 总计划 − 已生产。</text>
   <text class="p">卡片底部有<text class="k">吸底操作条</text>：左边「合计后补料浆」= 所有浆料后补量之和，生成补料申请时一并列出。</text>
@@ -28,8 +28,8 @@
   <view class="h">生成补料申请</view>
   <text class="p">点卡片底部吸底条右侧「生成补料申请」会把数据整理成一段文字复制到剪贴板，直接粘贴发给原料间即可。</text>
 
-  <view class="h">说明</view>
-  <text class="p">本工具为现场测算设计，即算即清，不在本地保存历史。手机测试版（H5）用于验证计算与交互可行性；正式版是微信小程序（需电脑用微信开发者工具导入本项目）。右上角按钮可切换白天 / 黑夜模式，选择会记住。</text>
+  <view class="h">关于本页</view>
+  <text class="p">本工具为现场测算设计，即算即清，不在本地保存历史。本页是微信小程序版，与 H5 版逻辑完全一致。右上角按钮可切换白天 / 黑夜模式，选择会记住。</text>
 
   <button class="back-btn" bindtap="goBack">返回测算</button>
 </view>
