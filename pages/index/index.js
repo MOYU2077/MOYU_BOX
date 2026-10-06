@@ -243,7 +243,7 @@ Page({
       lines.push('— ' + (s.no || ('浆料' + (i + 1))) + ' —')
       lines.push('  基础料浆：' + (s.baseSlurry || '?') + ' L')
       lines.push('  抽样：' + (sampleText || '?'))
-      lines.push('  单车实际用量：' + sc.unitText.replace('单车实际用量 ', ''))
+      lines.push('  单车实际用量：' + sc.unitShort)
       if (sc.diffValid) lines.push('  误差监控：' + sc.diffText)
       lines.push('  现场实际剩余：' + (isNaN(parseFloat(s.actualRemain)) ? '未填·按理论算' : s.actualRemain) + ' L')
       lines.push('  后补料浆：' + (sc.replenishType === 'enough' ? '无需补料（料浆充足）' : sc.replenish.toFixed(2) + ' L'))
@@ -265,7 +265,7 @@ function computeSlurry(s, P, T) {
   const B = parseFloat(s.baseSlurry)
   const S = parseFloat(s.actualRemain)
   const c = {
-    unitValid: false, unit: 0, sampleCars: 0, unitText: '',
+    unitValid: false, unit: 0, sampleCars: 0, unitText: '', unitShort: '',
     diffValid: false, diffText: '', diffType: '',
     replenishValid: false, replenish: 0, replenishText: '', replenishType: ''
   }
@@ -295,6 +295,7 @@ function computeSlurry(s, P, T) {
     c.unit = u
     c.sampleCars = maxCar
     c.unitText = '单车实际用量 ' + u.toFixed(2) + ' L/车（到第 ' + maxCar + ' 车 · ' + units.length + ' 条抽样取均值）'
+    c.unitShort = u.toFixed(2) + ' L/车（到第 ' + maxCar + ' 车 · ' + units.length + ' 条抽样取均值）'
   }
   if (c.unitValid && !isNaN(B) && !isNaN(P)) {
     const theoryRemain = B - P * c.unit
