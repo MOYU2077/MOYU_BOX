@@ -16,3 +16,6 @@ dist/
 
 # 打包传输用的压缩包（不纳入版本库）
 *.zip
+
+# 微信开发者工具（本地私有配置，不应入库）
+project.private.config.json
