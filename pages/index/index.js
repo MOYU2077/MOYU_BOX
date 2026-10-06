@@ -35,7 +35,7 @@ Page({
     const list = this.data.projects
     const first = this.newSlurry(1)
     list.push({
-      id: Date.now(),
+      id: Date.now() + Math.random(),
       name: '项目' + (list.length + 1),
       totalPlan: '',       // 项目总计划车数（车，项目级）
       produced: '',        // 已生产车数（车，项目级，仅手动模式使用）
@@ -274,9 +274,14 @@ function computeSlurry(s, P, T) {
   let units = [], maxCar = 0
   ;(s.samples || []).forEach(sm => {
     sm.calcUse = ''
+    sm.bad = ''; sm.badMsg = ''
     const en = parseFloat(sm.end), rm = parseFloat(sm.remain)
-    // 剩余需可观测且在 [0, 总配量] 内；end 必须是正的车序号
-    if (!isNaN(en) && en > 0 && !isNaN(B) && !isNaN(rm) && rm >= 0 && rm <= B) {
+    // 剩余需可观测且在 [0, 总配量] 内；end 必须是正的车序号。
+    // 剩余为负或超过基础料浆时给出明确提示（与 H5 版一致），而不是静默忽略。
+    if (!isNaN(B) && !isNaN(rm) && (rm < 0 || rm > B)) {
+      sm.bad = 'bad'
+      sm.badMsg = rm < 0 ? '剩余不能为负' : ('剩余(' + rm + ') 大于基础料浆(' + B + ') L')
+    } else if (!isNaN(en) && en > 0 && !isNaN(B) && !isNaN(rm) && rm >= 0 && rm <= B) {
       units.push((B - rm) / en)
       if (en > maxCar) maxCar = en
       sm.calcUse = (B - rm).toFixed(2)
@@ -351,7 +356,8 @@ function computeProject(p) {
   const c = {
     autoProduced: '', P: NaN,
     needProduceValid: false, needProduce: 0,
-    slurries: [], totalReplenish: 0, allSlurryValid: true, allReplenishValid: false
+    slurries: [], totalReplenish: 0, allSlurryValid: true, allReplenishValid: false,
+    maxReached: false
   }
   // 自动已生产：取所有浆料抽样记录里的最大车号
   let maxEnd = NaN
@@ -386,6 +392,7 @@ function computeProject(p) {
   c.totalReplenishText = total.toFixed(2) // 吸底合计统一两位小数，避免浮点误差
   c.allSlurryValid = allValid
   c.allReplenishValid = allValid && (p.slurries || []).length > 0
+  c.maxReached = (p.slurries || []).length >= MAX_SLURRIES
   p.computed = c
   return p
 }
