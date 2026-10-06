@@ -54,7 +54,7 @@
             <view class="ball {{p.computed.slurries[si].ballClass || 'gray'}}" style="font-size:{{p.computed.slurries[si].ballFont || 36}}rpx" bindlongpress="onBallLongPress" data-id="{{p.id}}" data-sid="{{s.id}}">{{s.no || ('浆料' + (si + 1))}}</view>
             <text class="ball-amt {{p.computed.slurries[si].ballClass || 'gray'}}">{{p.computed.slurries[si].amtText || '待算'}}</text>
           </view>
-          <view wx:if="{{p.slurries.length < 12}}" class="chip chip-add" bindtap="addSlurry" data-id="{{p.id}}"><view class="ball ball-add">+</view></view>
+          <view wx:if="{{!p.computed.maxReached}}" class="chip chip-add" bindtap="addSlurry" data-id="{{p.id}}"><view class="ball ball-add">+</view></view>
           <view wx:else class="chip chip-add chip-disabled"><view class="ball ball-add ball-full">满</view></view>
         </view>
       </scroll-view>
@@ -82,7 +82,8 @@
                     <input class="s-amount" type="digit" placeholder="剩余(L)" value="{{sm.remain}}" bindinput="onSampleInput" data-id="{{p.id}}" data-sid="{{s.id}}" data-idx="{{sidx}}" data-field="remain" />
                     <text class="use-del" bindtap="removeSample" data-id="{{p.id}}" data-sid="{{s.id}}" data-idx="{{sidx}}">×</text>
                   </view>
-                  <text class="s-use-calc" wx:if="{{sm.calcUse}}">算出用量 {{sm.calcUse}} L</text>
+                  <text class="s-use-calc bad" wx:if="{{sm.bad}}">{{sm.badMsg}}</text>
+                  <text class="s-use-calc" wx:if="{{sm.calcUse && !sm.bad}}">算出用量 {{sm.calcUse}} L</text>
                 </view>
               </block>
               <view class="use-add" bindtap="addSample" data-id="{{p.id}}" data-sid="{{s.id}}">+ 添加抽样记录</view>
